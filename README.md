@@ -1,25 +1,41 @@
-# Retrieval-Augmented Generation (RAG) System
+# RAG Document Assistant
 
-Prototype RAG pipeline for turning PDF documents into searchable vector embeddings and using retrieved context to support language-model responses.
+A complete local Retrieval-Augmented Generation (RAG) application for asking questions over PDF documents.
 
-## Intended Pipeline
+## Pipeline
 
 ```text
-PDF → text extraction → cleaning/chunking → embeddings → FAISS index
-                                              ↓
-Query → query embedding → similarity search → relevant context → LLM
+PDFs → page-aware extraction → overlapping chunks → embeddings → FAISS
+                                      ↓
+Question → query embedding → top-k evidence → grounded answer
 ```
 
-## Tech Stack
+## Features
 
-**Python · Sentence Transformers · FAISS · PyPDF2 · Hugging Face Transformers · NumPy**
+- PDF ingestion with source and page metadata
+- Overlapping text chunking
+- SentenceTransformer embeddings with cosine-similarity search
+- FAISS vector index
+- Multi-document retrieval
+- Similarity scores and evidence inspection
+- Optional local FLAN-T5 generation
+- Streamlit UI
 
-## Current Status
+## Run
 
-The repository began as an experimental prototype. The original implementation mixed model loading, indexing, extraction, and response generation in one script and contained incomplete preprocessing/retrieval logic. The project documentation now makes the prototype status explicit rather than presenting the unfinished path as production-ready.
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
+```
 
-## Resume Description
+The first run downloads the embedding model. Enable answer generation in the UI only when you want to download the additional FLAN-T5 model.
 
-**RAG Document Q&A Prototype | Python, FAISS, Sentence Transformers, Transformers**
+## Design choices
 
-Explored a retrieval-augmented generation pipeline that extracts text from PDFs, chunks documents, generates dense embeddings, performs vector similarity search with FAISS, and supplies retrieved context to a language model for grounded question answering.
+The application keeps retrieval independent from generation. This makes it possible to evaluate retrieval quality, inspect the exact evidence returned, and run the project without a large generative model.
+
+## Future extensions
+
+Persistent vector storage, document deletion, reranking, retrieval evaluation, conversation memory, authentication, and an API layer can be added without changing the core retrieval contract.
