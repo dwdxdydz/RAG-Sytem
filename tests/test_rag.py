@@ -15,6 +15,19 @@ def test_chunking_cleans_whitespace():
     assert chunks == ["hello world again"]
 
 
+def test_chunking_rejects_non_text_input():
+    with pytest.raises(TypeError, match="text must be a string"):
+        rag.DocumentStore._split(None)
+
+
+def test_search_validates_k_before_loading_an_embedding_model():
+    store = object.__new__(rag.DocumentStore)
+    store.index = None
+    store.chunks = []
+    with pytest.raises(ValueError, match="positive integer"):
+        store.search("question", k=0)
+
+
 def test_context_contains_source_and_page():
     chunk = rag.Chunk("answer text", "report.pdf", 3)
     context = rag.build_context([(chunk, 0.91)])

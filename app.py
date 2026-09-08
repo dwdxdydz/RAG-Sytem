@@ -1,13 +1,31 @@
 """Streamlit interface for the local RAG pipeline."""
 
 import tempfile
+import sys
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
-from importlib.machinery import SourceFileLoader
 
 import streamlit as st
 from transformers import pipeline
 
-rag = SourceFileLoader("rag_core", "RAG System.py").load_module()
+
+def load_rag_module():
+    """Load the core module relative to this file, not Streamlit's CWD."""
+    module_path = Path(__file__).with_name("RAG System.py")
+    spec = spec_from_file_location("rag_core", module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Unable to load RAG module from {module_path}")
+    module = module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(spec.name, None)
+        raise
+    return module
+
+
+rag = load_rag_module()
 
 st.set_page_config(page_title="RAG Document Assistant", page_icon="📚", layout="wide")
 st.title("📚 RAG Document Assistant")
@@ -32,9 +50,18 @@ if files:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             tmp.write(uploaded.getbuffer())
             tmp_path = Path(tmp.name)
-        count = store.add_pdf(str(tmp_path), source_name=uploaded.name)
-        indexed_sources.add(uploaded.name)
-        st.success(f"Indexed {uploaded.name}: {count} chunks")
+        try:
+            count = store.add_pdf(str(tmp_path), source_name=uploaded.name)
+        except Exception as error:
+            st.error(f"Could not index {uploaded.name}: {error}")
+        else:
+            indexed_sources.add(uploaded.name)
+            if count:
+                st.success(f"Indexed {uploaded.name}: {count} chunks")
+            else:
+                st.warning(f"No extractable text was found in {uploaded.name}.")
+        finally:
+            tmp_path.unlink(missing_ok=True)
 
 query = st.text_input("Ask a question about your documents")
 k = st.slider("Retrieved chunks", 1, 8, 4)
