@@ -1,17 +1,10 @@
-"""End-to-end local RAG pipeline.
-
-The pipeline extracts PDF text, chunks it, creates normalized embeddings,
-retrieves the most relevant chunks, and optionally generates an answer with a
-small local seq2seq model. The retrieval layer remains usable without a
-text-generation model.
-"""
+"""End-to-end local RAG pipeline with page-aware evidence."""
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import faiss
-import numpy as np
 from PyPDF2 import PdfReader
 from sentence_transformers import SentenceTransformer
 
@@ -37,24 +30,22 @@ class DocumentStore:
         step = chunk_size - overlap
         return [cleaned[i:i + chunk_size] for i in range(0, len(cleaned), step) if cleaned[i:i + chunk_size].strip()]
 
-    def add_pdf(self, pdf_path: str) -> int:
+    def add_pdf(self, pdf_path: str, source_name: Optional[str] = None) -> int:
         path = Path(pdf_path)
         if not path.exists():
             raise FileNotFoundError(path)
+        source = source_name or path.name
         reader = PdfReader(str(path))
         new_chunks = []
         for page_number, page in enumerate(reader.pages, start=1):
             text = page.extract_text() or ""
             for chunk in self._split(text):
-                new_chunks.append(Chunk(chunk, path.name, page_number))
+                new_chunks.append(Chunk(chunk, source, page_number))
         if not new_chunks:
             return 0
-
         embeddings = self.encoder.encode(
-            [c.text for c in new_chunks],
-            convert_to_numpy=True,
-            normalize_embeddings=True,
-            show_progress_bar=False,
+            [c.text for c in new_chunks], convert_to_numpy=True,
+            normalize_embeddings=True, show_progress_bar=False,
         ).astype("float32")
         if self.index is None:
             self.index = faiss.IndexFlatIP(embeddings.shape[1])
@@ -69,11 +60,7 @@ class DocumentStore:
             [query], convert_to_numpy=True, normalize_embeddings=True
         ).astype("float32")
         scores, indices = self.index.search(vector, min(k, len(self.chunks)))
-        return [
-            (self.chunks[i], float(score))
-            for score, i in zip(scores[0], indices[0])
-            if i >= 0
-        ]
+        return [(self.chunks[i], float(score)) for score, i in zip(scores[0], indices[0]) if i >= 0]
 
 
 def build_context(results: List[tuple[Chunk, float]]) -> str:
