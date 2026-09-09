@@ -1,25 +1,38 @@
-# RAG Document Assistant
+# 📄 RAG Document Assistant
 
-A complete local Retrieval-Augmented Generation (RAG) application for asking questions over PDF documents.
+A local **Retrieval-Augmented Generation (RAG)** application for asking questions over PDF documents. The project combines document processing, semantic embeddings, vector search, evidence inspection, and optional local answer generation in a Streamlit interface.
 
-## Pipeline
+## Architecture
 
 ```text
-PDFs → page-aware extraction → overlapping chunks → embeddings → FAISS
-                                      ↓
-Question → query embedding → top-k evidence → grounded answer
+PDF documents
+     ↓
+Text extraction + cleaning
+     ↓
+Overlapping chunks + metadata
+     ↓
+SentenceTransformer embeddings
+     ↓
+FAISS vector index
+     ↓
+User question → query embedding
+     ↓
+Top-k relevant evidence
+     ↓
+Grounded answer / evidence inspection
 ```
 
 ## Features
 
 - PDF ingestion with source and page metadata
-- Overlapping text chunking
-- SentenceTransformer embeddings with cosine-similarity search
-- FAISS vector index
+- Text cleaning and overlapping chunking
+- SentenceTransformer embeddings
+- Normalized cosine-similarity retrieval with FAISS
 - Multi-document retrieval
-- Similarity scores and evidence inspection
-- Optional local FLAN-T5 generation
-- Streamlit UI
+- Similarity scores and source/page evidence
+- Optional local FLAN-T5 answer generation
+- Streamlit user interface
+- Tests and CI
 
 ## Run
 
@@ -30,12 +43,23 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The first run downloads the embedding model. Enable answer generation in the UI only when you want to download the additional FLAN-T5 model.
+The embedding model is downloaded on first use. Answer generation can optionally download the additional FLAN-T5 model.
 
 ## Design choices
 
-The application keeps retrieval independent from generation. This makes it possible to evaluate retrieval quality, inspect the exact evidence returned, and run the project without a large generative model.
+Retrieval is kept independent from generation. This allows the retrieval layer to be tested and inspected separately, makes evidence visible to the user, and keeps the application usable without a large generative model.
 
-## Future extensions
+## Portfolio value
 
-Persistent vector storage, document deletion, reranking, retrieval evaluation, conversation memory, authentication, and an API layer can be added without changing the core retrieval contract.
+This project demonstrates practical skills in **Python, NLP, embeddings, vector databases/search, information retrieval, document processing, AI application design, Streamlit, testing, and system architecture**.
+
+## Future improvements
+
+- Persistent vector storage
+- Document upload/delete management
+- Reranking for improved retrieval quality
+- Retrieval evaluation dataset and metrics
+- Conversation memory
+- Authentication
+- REST API deployment
+- More robust citation and hallucination safeguards
