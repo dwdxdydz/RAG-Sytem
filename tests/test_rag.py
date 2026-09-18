@@ -1,8 +1,5 @@
-from importlib.machinery import SourceFileLoader
-
 import pytest
-
-rag = SourceFileLoader("rag_core", "RAG System.py").load_module()
+import rag_system as rag
 
 
 def test_chunk_overlap_validation():
@@ -20,7 +17,12 @@ def test_chunking_rejects_non_text_input():
         rag.DocumentStore._split(None)
 
 
-def test_search_validates_k_before_loading_an_embedding_model():
+def test_chunking_empty_string():
+    chunks = rag.DocumentStore._split("   ")
+    assert chunks == []
+
+
+def test_search_validates_k():
     store = object.__new__(rag.DocumentStore)
     store.index = None
     store.chunks = []
@@ -29,7 +31,13 @@ def test_search_validates_k_before_loading_an_embedding_model():
 
 
 def test_context_contains_source_and_page():
-    chunk = rag.Chunk("answer text", "report.pdf", 3)
-    context = rag.build_context([(chunk, 0.91)])
-    assert "report.pdf" in context
-    assert "page 3" in context
+    chunk = rag.Chunk("Machine learning pipeline details", "annual_report.pdf", 3)
+    context = rag.build_context([(chunk, 0.912)])
+    assert "annual_report.pdf" in context
+    assert "Page 3" in context
+    assert "0.912" in context
+    assert "Machine learning pipeline details" in context
+
+
+def test_build_context_empty():
+    assert rag.build_context([]) == ""
